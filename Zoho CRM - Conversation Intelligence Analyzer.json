@@ -1,0 +1,592 @@
+{
+  "name": "Zoho CRM - Conversation Intelligence Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "sentimentThreshold",
+              "type": "number",
+              "value": 0.7
+            },
+            {
+              "id": "id-2",
+              "name": "minCommitmentConfidence",
+              "type": "number",
+              "value": 0.8
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "daaf6adb-8c10-454b-8bcd-f71955d93d02",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        976,
+        496
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "8edb4981-f56d-45a1-abcd-47aed4b5fc28",
+      "name": "Transcribe Call Recording",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1328,
+        496
+      ],
+      "typeVersion": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "763E8PvISW3r4tiv",
+          "name": "OpenAi account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "topics",
+              "description": "List of key topics discussed in the conversation"
+            },
+            {
+              "name": "mainSubject",
+              "description": "Primary subject or purpose of the call"
+            },
+            {
+              "name": "actionItems",
+              "description": "Specific action items mentioned"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8b8da096-af0a-49c1-aa0f-69523d93ec3a",
+      "name": "Extract Key Topics",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "position": [
+        1504,
+        496
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "c74a9137-7eaf-40fa-b498-b4b92481757a",
+      "name": "OpenAI Model for Topics",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        1504,
+        720
+      ],
+      "typeVersion": 1.3,
+      "credentials": {
+        "openAiApi": {
+          "id": "763E8PvISW3r4tiv",
+          "name": "OpenAi account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Transcribe Call Recording').item.json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "overallSentiment",
+              "description": "Overall sentiment: positive, negative, or neutral"
+            },
+            {
+              "name": "sentimentScore",
+              "type": "number",
+              "description": "Sentiment score from -1 (very negative) to 1 (very positive)"
+            },
+            {
+              "name": "customerMood",
+              "description": "Customer emotional state during the call"
+            },
+            {
+              "name": "salesRepTone",
+              "description": "Sales representative tone and approach"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "69dddc18-e35a-4df4-9c3b-66c4fb97c081",
+      "name": "Analyze Sentiment",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "position": [
+        1808,
+        496
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "483e214a-ed8c-4218-a938-f32ac0491d0a",
+      "name": "OpenAI Model for Sentiment",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        1856,
+        720
+      ],
+      "typeVersion": 1.3,
+      "credentials": {
+        "openAiApi": {
+          "id": "763E8PvISW3r4tiv",
+          "name": "OpenAi account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Transcribe Call Recording').item.json.text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"commitments\": {\n\t\t\t\"type\": \"array\",\n\t\t\t\"description\": \"List of commitments made during the call\",\n\t\t\t\"items\": {\n\t\t\t\t\"type\": \"object\",\n\t\t\t\t\"properties\": {\n\t\t\t\t\t\"party\": {\n\t\t\t\t\t\t\"type\": \"string\",\n\t\t\t\t\t\t\"description\": \"Who made the commitment: customer or sales rep\"\n\t\t\t\t\t},\n\t\t\t\t\t\"commitment\": {\n\t\t\t\t\t\t\"type\": \"string\",\n\t\t\t\t\t\t\"description\": \"Description of the commitment\"\n\t\t\t\t\t},\n\t\t\t\t\t\"deadline\": {\n\t\t\t\t\t\t\"type\": \"string\",\n\t\t\t\t\t\t\"description\": \"Deadline or timeframe for the commitment\"\n\t\t\t\t\t},\n\t\t\t\t\t\"confidence\": {\n\t\t\t\t\t\t\"type\": \"number\",\n\t\t\t\t\t\t\"description\": \"Confidence level of this being a real commitment (0-1)\"\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}",
+        "options": {}
+      },
+      "id": "77f970b6-2d64-499f-8a8d-5d2e94eed959",
+      "name": "Extract Commitments",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "position": [
+        2112,
+        496
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "d5c97a61-5ce2-4bf6-ac1a-35a2cc3e4efe",
+      "name": "OpenAI Model for Commitments",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        2208,
+        720
+      ],
+      "typeVersion": 1.3,
+      "credentials": {
+        "openAiApi": {
+          "id": "763E8PvISW3r4tiv",
+          "name": "OpenAi account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=As an AI Conversation Analyst, your task is to review the following sales call transcript and the identified commitments. Based ONLY on this information, generate a numbered list of 3-5 clear, actionable **Follow-Up Suggestions** for the Sales Representative.\n\nFocus on next steps, scheduling, and ensuring commitments are met.\n\n---\n[CONTEXT]\n1. Full Call Transcript:\n{{ $('Transcribe Call Recording').item.json.text }}\n2. Extracted Commitments (from previous node):\n{{ $json.output.commitments }}\n---\n\nOutput only the numbered list of suggestions."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "2458974c-487f-4a20-bb74-46ffb9cd9536",
+      "name": "Generate Follow-up Suggestions",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        2432,
+        496
+      ],
+      "typeVersion": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "763E8PvISW3r4tiv",
+          "name": "OpenAi account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "transcription",
+              "type": "string",
+              "value": "={{ $('Transcribe Call Recording').item.json.text }}"
+            },
+            {
+              "id": "id-2",
+              "name": "keyTopics",
+              "type": "string",
+              "value": "={{ $('Extract Key Topics').item.json.output.topics }}"
+            },
+            {
+              "id": "id-3",
+              "name": "mainSubject",
+              "type": "string",
+              "value": "={{ $('Extract Key Topics').item.json.output.mainSubject }}"
+            },
+            {
+              "id": "id-4",
+              "name": "sentiment",
+              "type": "string",
+              "value": "={{ $('Analyze Sentiment').item.json.output.overallSentiment }}"
+            },
+            {
+              "id": "id-5",
+              "name": "sentimentScore",
+              "type": "number",
+              "value": "={{ $('Analyze Sentiment').item.json.output.sentimentScore }}"
+            },
+            {
+              "id": "id-6",
+              "name": "customerMood",
+              "type": "string",
+              "value": "={{ $('Analyze Sentiment').item.json.output.customerMood }}"
+            },
+            {
+              "id": "id-8",
+              "name": "followUpSuggestions",
+              "type": "string",
+              "value": "={{ $json.output[0].content[0].text }}"
+            },
+            {
+              "id": "id-9",
+              "name": "analysisTimestamp",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "6b851fff-6136-4f45-ad73-d44fb780e4c1",
+              "name": "commitment",
+              "type": "string",
+              "value": "={{ $('Extract Commitments').item.json.output.commitments }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "f3d2ca34-3263-4105-8611-4658754bb9d2",
+      "name": "Combine Analysis Results",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2832,
+        496
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "resource": "lead",
+        "operation": "update",
+        "updateFields": {
+          "customFields": {
+            "customFields": [
+              {
+                "fieldId": "Topic",
+                "value": "={{ $('Extract Key Topics').item.json.output.topics }}"
+              },
+              {
+                "fieldId": "Main_Subject",
+                "value": "={{ $('Extract Key Topics').item.json.output.mainSubject }}"
+              },
+              {
+                "fieldId": "Action_Items",
+                "value": "={{ $('Extract Key Topics').item.json.output.actionItems }}"
+              },
+              {
+                "fieldId": "Customer_Mood",
+                "value": "={{ $('Analyze Sentiment').item.json.output.customerMood }}"
+              },
+              {
+                "fieldId": "Sentiment_Scores",
+                "value": "={{ $('Analyze Sentiment').item.json.output.sentimentScore }}"
+              },
+              {
+                "fieldId": "Sentiment",
+                "value": "={{ $('Analyze Sentiment').item.json.output.overallSentiment }}"
+              },
+              {
+                "fieldId": "FollowUp_Text",
+                "value": "={{ $('Generate Follow-up Suggestions').item.json.output[0].content[0].text }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "98a9182e-8f41-4502-a4e3-8443a274a150",
+      "name": "Update CRM with Analysis",
+      "type": "n8n-nodes-base.zohoCrm",
+      "position": [
+        3056,
+        496
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-recording-upload",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e3307e47-324f-47f9-b75e-149cb5b06418",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        688,
+        496
+      ],
+      "webhookId": "bc97f8c9-12f4-4509-a1a9-f65c014693cc",
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "content": "## How it works\nThis workflow automatically processes every call recording uploaded to your webhook and enriches the corresponding Lead in Zoho CRM. When a recording is received, the system transcribes the audio using OpenAI Whisper, extracts the key topics, identifies action items, and analyzes both customer sentiment and sales-rep tone. It also detects any commitments mentioned on the call and generates clear follow-up suggestions for the sales team. All insights are pushed into the lead record in Zoho CRM.\nThis automation removes the need for manual note-taking or call reviews, giving your team AI-generated clarity within seconds.\n\n## Setup Steps\n\n1.Import the workflow JSON file into n8n.\n2.Add your Zoho CRM OAuth2 credentials and your OpenA I API key.\n3.Copy the webhook URL from n8n and configure your telephony system or app to POST the call recording file to that URL.\n4.Map the required Zoho custom fields (topics, sentiment, commitments, follow-up actions).\n5.Run a test by uploading a sample call recording.\n6.Verify the extracted insights and confirm that the correct Lead record is updated.\n7.Activate the workflow and begin processing real calls automatically.",
+        "height": 640,
+        "width": 448
+      },
+      "id": "51ea9ef7-f294-4683-8c30-0418610dc1de",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        -80
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Configuration\nThis step defines all static values needed across the workflow, such as sentimentThreshold, minCommitmentConfidence, and any other reusable parameters. It ensures consistent logic, easy updates, and avoids hard-coding values inside individual nodes.",
+        "height": 592,
+        "width": 304,
+        "color": 7
+      },
+      "id": "1a6b5b62-fc2f-43d9-bcc9-a139b1fd6969",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        880,
+        272
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Transcription and Data Extraction using OpenAi\nWhen a call recording is received, it is first transcribed using OpenAI. The transcript is then analyzed to extract key topics, identify commitments, evaluate sentiment, and generate follow-up actions.",
+        "height": 592,
+        "width": 1456,
+        "color": 7
+      },
+      "id": "658e9759-651b-4e4d-a99a-d1c542703f10",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1264,
+        272
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "### Combine result\nMerge all previous output and updated in the Zoho leads.",
+        "height": 592,
+        "width": 480,
+        "color": 7
+      },
+      "id": "9679aa49-8735-4c68-a4c1-d10116b4a19b",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2768,
+        272
+      ],
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Extract Commitments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Key Topics": {
+      "main": [
+        [
+          {
+            "node": "Analyze Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Commitments": {
+      "main": [
+        [
+          {
+            "node": "Generate Follow-up Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Call Recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model for Topics": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Key Topics",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "Update CRM with Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Call Recording": {
+      "main": [
+        [
+          {
+            "node": "Extract Key Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model for Sentiment": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Sentiment",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model for Commitments": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Commitments",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Follow-up Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Combine Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cf191b0d-9b25-4277-b2c1-54b5d971b215",
+  "meta": {
+    "instanceId": "df9e926e4db944a4b8e5dbae635b7c198e7118577d93d38bd64b1952645ba4f0"
+  },
+  "id": "dLpXOCjW4D3iRbZV",
+  "tags": [
+    {
+      "updatedAt": "2025-12-17T11:44:34.039Z",
+      "createdAt": "2025-12-17T11:44:34.039Z",
+      "id": "YPdhjluLmInwwfhw",
+      "name": "Zoho"
+    },
+    {
+      "updatedAt": "2025-12-17T11:44:31.948Z",
+      "createdAt": "2025-12-17T11:44:31.948Z",
+      "id": "kreXvkpF4wL5KpmO",
+      "name": "CRM"
+    }
+  ]
+}
