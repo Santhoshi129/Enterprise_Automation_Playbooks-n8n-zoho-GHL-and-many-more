@@ -1,0 +1,537 @@
+{
+  "name": "Warm Lead Discovery",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "subreddit": "RemoteJobs",
+        "limit": 10,
+        "filters": {
+          "category": "new"
+        }
+      },
+      "name": "Get New Reddit Posts",
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        192
+      ],
+      "id": "d7a15d50-6ba5-48e1-879d-3f082e3b8cee",
+      "credentials": {
+        "redditOAuth2Api": {
+          "id": "ORjiMCZq13yRh3D4",
+          "name": "Reddit account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Format posts\nconst json_data = item.json || {};\nreturn {\n  json: {\n    title: json_data.title || '',\n    text: json_data.selftext || '',\n    url: json_data.permalink ? 'https://reddit.com' + json_data.permalink : '',\n    source: json_data.subreddit || '',\n    post_id: json_data.id || ''\n  }\n};"
+      },
+      "name": "Format Reddit Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        192
+      ],
+      "id": "f1ce4d01-f646-4ec7-9ab8-2db670b0bd26"
+    },
+    {
+      "parameters": {
+        "batchSize": 20,
+        "options": {}
+      },
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -544,
+        192
+      ],
+      "id": "4d008226-661a-42cf-a939-69a6ffd63e51"
+    },
+    {
+      "parameters": {
+        "unit": "seconds"
+      },
+      "name": "Wait 20s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        208
+      ],
+      "id": "bb5e6b49-1003-4314-97ec-d62687ea1e83",
+      "webhookId": "df332449-dac6-4d01-ac76-a9eb9a84b96a"
+    },
+    {
+      "parameters": {
+        "jsCode": "let results = [];\n\ntry {\n  // Combine all parts safely\n  const rawText = ($json.parts || [])\n    .map(p => p.text || '')\n    .join('')\n    .trim();\n\n  if (!rawText) {\n    return [];\n  }\n\n  // Remove markdown fences if present\n  const cleaned = rawText\n    .replace(/```json/gi, '')\n    .replace(/```/g, '')\n    .trim();\n\n  const data = JSON.parse(cleaned);\n\n  if (data.is_lead === true) {\n    results.push({\n      json: {\n        is_lead: true,\n        confidence_score: data.confidence_score ?? 5,\n        summary: data.summary || 'No summary provided',\n        title: $json.title,\n        url: $json.url,\n        source: $json.source,\n        post_id: $json.post_id,\n        detected_at: new Date().toISOString()\n      }\n    });\n  }\n\n} catch (err) {\n  console.error('Gemini parsing failed:', err.message);\n}\n\nreturn results;\n"
+      },
+      "name": "Parse Gemini Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        208
+      ],
+      "id": "a7cdfc5a-ae99-4f19-9a1b-961621962026",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1vc-UXiMqLdjzir7JKqG0nuJpC6RW5IuaCf3SkvsdWOc",
+          "mode": "list",
+          "cachedResultName": "Warm Lead Generator",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vc-UXiMqLdjzir7JKqG0nuJpC6RW5IuaCf3SkvsdWOc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1KOdKU5ezwxTE0f6JewOvKA6v0R4-7zvhgP7ibRflFho/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "is_lead",
+              "displayName": "is_lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "confidence_score",
+              "displayName": "confidence_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false,
+          "Timestamp": "={{$now}}",
+          "Lead Title": "={{$json.title}}",
+          "Source": "={{$json.source}}",
+          "URL": "={{$json.url}}",
+          "AI Summary": "={{$json.summary}}",
+          "Confidence Score": "={{$json.confidence_score}}"
+        },
+        "options": {}
+      },
+      "name": "Append to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        816,
+        192
+      ],
+      "id": "114915ae-cb54-479a-ac5c-5c5b9c613649",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SB33dOGKunAEhMoH",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an expert Lead Qualification Assistant. Analyze the following post and determine if it is a warm lead from someone genuinely looking to hire or buy technology or creative services (web development, app development, UI/UX design, graphic design, automation). Ignore posts where the poster offers their own services, asks for school help, or just discusses topics. Respond ONLY in JSON with keys: is_lead (boolean), confidence_score (0-10), summary (one sentence). Do NOT add any extra text outside the JSON.",
+              "role": "model"
+            },
+            {
+              "content": "=Post title: {{ $json.title }}\nPost content: {{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        208
+      ],
+      "id": "325b6d3b-ab3f-40d3-8fe8-e9f8247c0937",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kBPQElGFvlUh8cf0",
+          "name": "Google Gemini(PaLM) Api account 4"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1312,
+        192
+      ],
+      "id": "ed4dd1c1-6e27-43ff-a340-1544725e6568",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = `${$json.title} ${$json.text}`.toLowerCase();\n\nconst intentKeywords = [\n  'hire',\n  'hiring',\n  'looking for',\n  'need',\n  'need help',\n  'freelancer',\n  'agency',\n  'developer',\n  'designer',\n  'automation',\n  'budget',\n  'paid',\n  'project'\n];\n\nconst excludedKeywords = [\n  'i am offering',\n  'my services',\n  'for hire',\n  'student',\n  'homework',\n  'assignment',\n  'learning',\n  'course'\n];\n\nconst hasIntent = intentKeywords.some(k => text.includes(k));\nconst isExcluded = excludedKeywords.some(k => text.includes(k));\n\nif (hasIntent && !isExcluded) {\n  return [{ json: $json }];\n}\n\n// Drop item\nreturn [];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        192
+      ],
+      "id": "b6b18037-45a5-4a92-afbc-bd5187df46e7",
+      "name": "Pre-filter Intent Keywords",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## Reddit Signal Intake ##\n**Pulls latest posts from intent-rich subreddits, focused on remote hiring and paid projects.** \n",
+        "height": 320,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1360,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "06f33eb8-bb2b-4a0d-b5f7-464d446264a1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## AI Lead Qualification\n**Gemini analyzes posts to detect genuine\nbuying intent and assigns confidence scores.**\n",
+        "height": 320,
+        "width": 480,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -192,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "46b35aaf-5e83-492c-8743-72d8dc6d4de7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Intent Pre-Filtering \n**Keyword-based filtering** removes low-intent posts before AI processing **to reduce cost and latency.**",
+        "height": 320,
+        "width": 368,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -960,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "38976e43-db65-42ae-af37-3def2401def6",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1vc-UXiMqLdjzir7JKqG0nuJpC6RW5IuaCf3SkvsdWOc",
+          "mode": "list",
+          "cachedResultName": "Warm Lead Generator",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vc-UXiMqLdjzir7JKqG0nuJpC6RW5IuaCf3SkvsdWOc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vc-UXiMqLdjzir7JKqG0nuJpC6RW5IuaCf3SkvsdWOc/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "post_id",
+              "lookupValue": "={{ $json.post_id }}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        208
+      ],
+      "id": "c7359551-2897-474e-9587-49293e92e125",
+      "name": "Check Existing Lead (Dedup)",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SB33dOGKunAEhMoH",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "38d1a04c-a0b4-4ded-a781-55cb631081a6",
+              "leftValue": "=={{ $items(\"Check Existing Lead (Dedup)\").length === 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        208
+      ],
+      "id": "31705fa2-9bb2-4aa2-bcbf-be556fb0fe8d",
+      "name": "Is New Lead?"
+    },
+    {
+      "parameters": {
+        "content": "## Lead Deduplication\n**Checks Reddit post_id against existing Google Sheet** records to prevent duplicates.\n     Ensures safe repeated execution.\n",
+        "height": 128,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        336,
+        80
+      ],
+      "typeVersion": 1,
+      "id": "cd69bbd9-e090-49e8-8773-68c8fcb80570",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get New Reddit Posts": {
+      "main": [
+        [
+          {
+            "node": "Format Reddit Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reddit Post": {
+      "main": [
+        [
+          {
+            "node": "Pre-filter Intent Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait 20s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 20s": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Gemini Response": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Lead (Dedup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse Gemini Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get New Reddit Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pre-filter Intent Keywords": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Lead (Dedup)": {
+      "main": [
+        [
+          {
+            "node": "Is New Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Lead?": {
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1dfc3738-fe60-4d99-aff0-3e6b2f574f9d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "df9e926e4db944a4b8e5dbae635b7c198e7118577d93d38bd64b1952645ba4f0"
+  },
+  "id": "1pJMN2Nevq5Go0Nb",
+  "tags": [
+    {
+      "updatedAt": "2026-01-10T06:45:06.592Z",
+      "createdAt": "2026-01-10T06:45:06.592Z",
+      "id": "DXAdYXengPcs3550",
+      "name": "Reddit"
+    },
+    {
+      "updatedAt": "2026-01-10T06:44:57.538Z",
+      "createdAt": "2026-01-10T06:44:57.538Z",
+      "id": "NwpnAdmFsN1iYrzH",
+      "name": "Sales/Growth"
+    },
+    {
+      "updatedAt": "2026-01-10T07:08:12.895Z",
+      "createdAt": "2026-01-10T07:08:12.895Z",
+      "id": "Ukilh7UBSHsLskTP",
+      "name": "Lead Qualification"
+    }
+  ]
+}
